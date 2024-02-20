@@ -1,0 +1,119 @@
+version: '3.4'
+services:
+  openvpn:
+    container_name: openvpn
+    image: 'dperson/openvpn-client:latest'
+    environment:
+      - 'OTHER_ARGS= --mute-replay-warnings'
+    cap_add:
+      - net_admin
+      - SYS_MODULE
+    restart: unless-stopped
+    volumes:
+      - '/owncloud/Disk/quick-arr-stack/docker/openvpn/config/vpn:/vpn'
+      - /lib/modules:/lib/modules
+    security_opt:
+      - 'label:disable'
+    devices:
+      - '/dev/net/tun:/dev/net/tun'
+    ports:
+      - '8112:8112'
+      - '9696:9696'
+    command: '-f "" -r 10.0.0.0/24' #cidr must be of host
+
+  deluge:
+    container_name: deluge
+    image: 'linuxserver/deluge:latest'
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Toronto
+    volumes:
+      - '/owncloud/Disk/quick-arr-stack/docker/deluge-openvpn/config:/config'
+      - '/owncloud/Disk/entertainment:/downloads'
+    network_mode: 'service:openvpn'
+    depends_on:
+      - openvpn
+
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr-openvpn
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Toronto
+    volumes:
+      - '/owncloud/Disk/quick-arr-stack/docker/prowlarr/config:/config'
+    restart: unless-stopped
+    network_mode: 'service:openvpn'
+    depends_on:
+      - openvpn                   
+
+  sonarr:
+    container_name: sonarr-openvpn
+    image: 'linuxserver/sonarr:latest'
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Toronto
+    volumes:
+      - '/etc/localtime:/etc/localtime:ro'
+      - '/owncloud/Disk/quick-arr-stack/docker/sonarr/config:/config'
+      - '/owncloud/Disk/entertainment:/downloads'
+  radarr:
+    container_name: radarr-openvpn
+    image: 'linuxserver/radarr:latest'
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Toronto
+    volumes:
+      - '/etc/localtime:/etc/localtime:ro'
+      - '/owncloud/Disk/quick-arr-stack/docker/radarr/config:/config'
+      - '/owncloud/Disk/entertainment:/downloads'
+      
+  bazarr:
+    container_name: bazarr-openvpn
+    image: 'linuxserver/bazarr:latest'
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Toronto
+      - UMASK_SET=022
+    volumes:
+      - '/owncloud/Disk/quick-arr-stack/docker/bazarr/config:/config'
+      - '/owncloud/Disk/entertainment:/downloads'
+    ports:
+      - '6767:6767'
+      
+  plex-server:
+    container_name: plex-server-openvpn
+    image: 'plexinc/pms-docker:latest'
+    restart: unless-stopped
+    environment:
+      - TZ=America/Toronto
+    network_mode: host
+    volumes:
+      - '/owncloud/Disk/quick-arr-stack/docker/plex/db/config:/config'
+      - '/owncloud/Disk/quick-arr-stack/docker/plex/transcode:/transcode'
+      - '/owncloud/Disk/entertainment/completed:/downloads'
+  
+  overseerr:
+    image: 'sctx/overseerr:latest'
+    container_name: overseerr-openvpn
+    network_mode: host
+    environment:
+      - LOG_LEVEL=debug
+      - TZ=America/Toronto
+    ports:
+      - '5055:5055'
+    volumes:
+      - '/owncloud/Disk/quick-arr-stack/docker/overseerr/config:/app/config'
+    restart: unless-stopped
