@@ -18,41 +18,25 @@ _Disclaimer: I'm not encouraging/supporting piracy, this is for information only
   - [Installation guide](#installation-guide)
     - [Install docker and docker-compose](#install-docker-and-docker-compose)
     - [Helpful Docker Commands](#helpfull-docker-commands)
-    - [Clone the repository](#clone-the-repository)
-    - [Setup environment variables](#setup-environment-variables)
-    - [Folder Setup](#folder-structure)
-    - [Setup a VPN Container](#setup-a-vpn-container)
-      - [VPN Option](#vpn-option)
-      - [Docker container](#vpn-docker-container)
-    - [Setup Deluge](#setup-deluge)
-      - [Docker container](#deluge-docker-container)
-      - [Configuration](#deluge-configuration)
-    - [Setup Plex](#setup-plex)
-      - [Docker Container](#media-server-docker-container)
-      - [Configuration](#plex-configuration)
-    - [Setup Sonarr](#setup-sonarr)
-      - [Docker container](#sonarr-docker-container)
-      - [Configuration](#sonarr-configuration)
-    - [Setup Radarr](#setup-radarr)
-      - [Docker container](#radarr-docker-container)
-      - [Configuration](#radarr-configuration)
-    - [Setup Prowlarr](#setup-prowlarr)
-      - [Docker container](#prowlarr-docker-container)
-      - [Configuration](#prowlarr-configuration)
-    - [Setup Bazarr](#setup-bazarr)
-      - [Bazarr Docker container](#bazarr-docker-container)
-      - [Bazarr Configuration](#bazarr-configuration)
+    - [Folder Setup](#creating-folder-structure)
+    - [Setup Portainer](#install-portainer)
+    - [Setup a VPN Container](#configure-vpn)
+    - [Setup Deluge](#deluge-configuration)
+    - [Setup Plex](#plex-configuration)
+    - [Setup Sonarr](#sonarr-configuration)
+    - [Setup Radarr](#radarr-configuration)
+    - [Setup Prowlarr](#prowlarr-configuration)
+    - [Bazarr Configuration](#bazarr-configuration)
     - [Testing](#testing)
-    - [Optional containers](#optional-containers)
+    - [Optional containers](#optional-or-alternative-containers)
       - [Setup Wireguard](#setup-wireguard)
         - [Docker container](#wireguard-docker-container)
         - [Configuration and usage](#wireguard-configuration)
       - [Setup Overseerr](#overseerr-setup)
         - [Docker container](#overseerr-docker-container)
         - [Configuration and usage](#overseerr-configuration)
-      - [Setup Portainer](#portainer-setup)
-        - [Docker container](#portainer-docker-container)
-        - [Configuration and usage](#portainer-configuration)
+      - [Setup Jelleyfin](#jellyfin-container)
+      - [Setup jellyseerr](#jellyseer-container)
   - [Mobile Management](#mobile-management)
 
 ## Overview
@@ -223,7 +207,9 @@ Add an username and password and hit `Create User`
 
 ***
 
-#### Configure VPN with your openvpn files.
+## Configure VPN
+
+Configure vpn with your openvpn files.
 
 - Download openvpn files from your vpn provider.
 - Delete all content in `${ROOT}/MediaCenter/quick-arr-stack/docker/openvpn/config/vpn` (if exists).
