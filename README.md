@@ -1,4 +1,4 @@
-## Quick Arr Stack
+## Quick Arr Stack with Portainer
 
 TV shows and movies downloaded, sorted, with the desired quality and subtitles, behind a VPN (optional), ready to watch, in a beautiful media player.
 All automated.
@@ -62,7 +62,11 @@ This is a quick guide on how to build a server with a [Servarr stack](https://wi
 
 How does it work?
 
-This is composed of multiple tools working together to have an automated way to monitor and watch your favourite TV Shows and Movies
+This is composed of multiple tools working together to have an automated way to monitor and watch your favorite TV Shows and Movies
+
+**Docker Container Manager**
+
+- [Portainer](https://github.com/portainer/portainer): This is a lightweight service that allows us to deploy, troubleshoot and monitor all of our containers, we can see the status, logs and manage them directly there.
 
 **Downloaders**:
 
@@ -79,15 +83,17 @@ This is composed of multiple tools working together to have an automated way to 
 **Media Center**:
 
 - [Plex](https://plex.tv): media center server with streaming transcoding features, useful plugins and a beautiful UI. Clients available for many systems (Linux/OSX/Windows, Web, Android, Chromecast, Android TV, etc.)
-
+  - OR
+- [Jellyfin](https://jellyfin.org): Jellyfin is the volunteer-built media solution that puts you in control of your media. Stream to any device from your own server, with no strings attached.
 
 **Optional**:
 
 - [Overseerr](https://overseerr.dev/):  is a free and open source software application for managing requests for your media library. It integrates with your existing services, such as Sonarr, Radarr, and Plex!
+  - OR
+- [Jellyseerr](https://overseerr.dev/):  Overseer is for plex where as Jellyseerr is for Jellyfin.
 
 - [Wireguard](https://github.com/linuxserver/docker-wireguard): is an extremely simple yet fast and modern VPN that utilizes state-of-the-art cryptography. This will allow us to connect to our home network  from anywhere and use the Plex app outside of our house without using Plex servers for routing.
 
-- [Portainer](https://github.com/portainer/portainer): This is a lightweight service that allows us to monitor all of our containers, we can see the status, logs and manage them directly there.
 
 ## Hardware configuration
 
@@ -131,203 +137,135 @@ docker-compose pull
 docker-compose start
 
 ```
-
-
-### Clone the repository
-
-This tutorial will guide you along the full process of making your own docker-compose file and configuring every app within it, however, to prevent errors or to reduce your typing, you can also use the general-purpose docker-compose file provided in this repository.
-
-1. First, `git clone https://github.com/Rick45/quick-arr-Stack` into a directory. This is where you will run the full setup from (note: this isn't the same as your configuration or media directory)
-2. Rename the `.env.example` file included in the repo to `.env`.
-3. Continue this guide, and the docker-compose file snippets you see are already ready for you to use. You'll still need to manually configure your `.env` file and other manual configurations.
-
-### Setup environment variables
-
-Rename the `.env.example` file included in the repo to `.env`.
-
-Here is an example of what your `.env` file should look like, use values that fit your own setup.
-
-```sh
-# Your timezone, https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
-TZ=Europe/Lisbon
-# UNIX PUID and PGID, find with: id $USER
-PUID=1000
-PGID=1000
-# The directory where configuration will be stored.
-ROOT=/home/{youruser}/  #update the {youruser} with your user path
-# The directory where data will be stored.
-HDDSTORAGE=/home/{youruser}/Storage/ #update the {youruser} with your user path
-
-# Wireguard Settings
-#Your public ip, auto for auto detect
-SERVERURL=auto
-#number of devices to generate configuration to connect to the wireguard vpn
-PEERS=7
-```
-
-Things to notice:
-
-- TZ is based on your [tz time zone](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones).
-- The PUID and PGID are your user's ids. Find them with `id $USER`.
-- This file should be in the same directory as your `docker-compose.yml` file so the values can be read in.
-
-
-***
-
-
-
-#### Folder Structure
+#### Creating Folder Structure
 
 Currently, I'm doing this in this way as it is(from what I found) the most straightforward method to have the [Hard link](https://en.wikipedia.org/wiki/Hard_link) for files to work without issues, this halves the amount of size while the torrent is seeding, and solve some access issues that I found while doing this setup.
 
+_Note: ${ROOT} can be any of your own path such as /home/user._
 
-Inside the folder from where you cloned the repository run the following command:  `docker-compose up -d --remove-orphans`.
+```
+${ROOT}/
+│
+└── MediaCenter/
+    │
+    ├── quick-arr-stack/
+    │   │
+    │   └── docker/
+    │       │
+    │       └── {container-name}/
+    │           │
+    │           └── config/
+    │
+    └── MediaCenterBox/
+        │
+        └── completed/
+            │
+            ├── movies/
+            │
+            └── tv/
+```
+
+Create the folders needed to store container config and movies/tv show files.
+
+`sudo mkdir -p ${ROOT}/MediaCenter/quick-arr-stack/docker/`
+
+and
+
+`sudo mkdir -p ${ROOT}/MediaCenter/MediaCenterBox/completed/movies`
+
+and
+
+`sudo mkdir -p ${ROOT}/MediaCenter/MediaCenterBox/completed/tv`
 
 Then run the following ones:
 
-`sudo chown -R $USER:$USER /path/to/ROOT/directory` 
+`sudo chown -R $USER:$USER ${ROOT}/MediaCenter/quick-arr-stack/docker`
  
-and 
+and
  
-`sudo chown -R $USER:$USER /path/to/HDDSTORAGE/directory` 
+`sudo chown -R $USER:$USER ${ROOT}/MediaCenter/MediaCenterBox`
  
 This will allow you to create folders, copy and paste files, this could be also required for Sonarr and Radarr to do some operations.
 
-After this Create 2 folders in the `Storage\Completed` folder, `Movies` and `TV`, this will be used later.
+### Install Portainer
 
 
-![Folder Structure](img/folderStructure.png)
-
-
-
-
-### Setup a VPN Container
-
-#### VPN Option
-
-If you do not own a VPN you can bypass this step.
-  - Is required to comment the highlighted lines in the `docker-compose.yml`
- example:
- ```sh
-    #ports:
-    #  - '8112:8112' #uncomment if you are not using the VPN
-    network_mode: 'service:vpn' #comment/remove if you are not using the VPN
-    depends_on:                 #comment/remove if you are not using the VPN
-      - vpn                     #comment/remove if you are not using the VPN
+```sh
+docker run -d -p 8000:8000 -p 9443:9443 --name portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v ${ROOT}/MediaCenter/quick-arr-stack/docker/portainer/data:/data portainer/portainer-ce:latest
 ```
 
-The goal here is to have an OpenVPN Client container running and always connected. We'll make Deluge incoming and outgoing traffic go through this OpenVPN container.
+See the [official instructions](https://docs.portainer.io/start/install-ce/server/docker/linux) for Initial Setup Portainer. or watch video (https://youtu.be/4y0ksWu4wHw?si=sz1FxeFxhQZsKc09&t=301)
 
-This must come up with some safety features:
-
-Configuration is explained on the [project page](https://github.com/dperson/openvpn-client), you can follow it.
-However, it is not that easy depending on your VPN server settings.
-I'm using a purevpn.com VPN, so here is how I set it up.
+### Portainer Configuration
 
 
-#### purevpn.com custom setup
+The Web UI for Portainer will be available on port 9000. Load it up and you will be greeted with the admin creation page.
+Add an username and password and hit `Create User`
 
-_Note_: this section only applies for [PureVPN](purevpn.com) accounts.
-
-1. Delete all content in `${ROOT}/config/vpn` and replace it with the ones available in the repo folder `Config Files\config\vpn(PureVPN)`
-1. Download the openVPN file from [PureVPN website](https://support.purevpn.com/openvpn-files).
-1. Open the file in the udp folder related to the country/connection that you want to use.
-1. Copy the remote value in the file and replace it on the vpn.conf file that is 
+![Portainer Admin Creation](img/PortainerConfiguration.png)
 
 
-#### VPN Docker container
 
-Your docker-compose file should have something like this:
+### Prepare template for Portainer
 
-```yaml
+- Download the `quick-arr-docker.yml` from this repo.
+- Open it in your fav editor like notepad++
+- Replace all occurrences of `${ROOT}` with your path.
+- Change `10.0.0.0/24` CIDR under openvpn service with your host machine cidr.
 
-  vpn:
-    container_name: vpn
-    image: 'dperson/openvpn-client:latest'
-    environment:
-      - 'OTHER_ARGS= --mute-replay-warnings'
-    cap_add:
-      - net_admin
-    restart: unless-stopped
-    volumes:
-      - '${ROOT}/MediaCenter/config/vpn:/vpn'
-    security_opt:
-      - 'label:disable'
-    devices:
-      - '/dev/net/tun:/dev/net/tun'
-    ports:
-      - '8112:8112' #deluge web UI Port
-    command: '-f "" -r 192.168.68.0/24'
+### Setup template in Portainer
 
-```
-
-Then run the container with `docker-compose up -d --remove-orphans`.
-
-To follow container logs, run `docker-compose logs -f vpn`.
-
-every time that you do changes in the VPN config file run `docker-compose restart vpn` this will force the container to restart and load the new settings
+- Login into Portainer
+- From the menu select App Templates then select Custom Templates.
+- Click Add Custom Template then complete the details
+- Copy paste the modified content of `quick-arr-docker.yml` in the Web editor.
+- Update the template
+- Do not Deploy the Stack now. Follow (#Configure-VPN-with-your-openvpn-files)
 
 ***
 
+#### Configure VPN with your openvpn files.
 
-### Setup Deluge
+- Download openvpn files from your vpn provider.
+- Delete all content in `${ROOT}/MediaCenter/quick-arr-stack/docker/openvpn/config/vpn` (if exists).
+  - download sample vpn.conf and vpn.auth from repo `conf\vpn` and place under `${ROOT}/MediaCenter/quick-arr-stack/docker/openvpn/config/vpn`.
+  - copy the udp/country.ovpn file content from your vpn provider to vpn.conf
+  - edit and set vpn username and password in vpn.auth
 
 
+### Deploy the template in Portainer
 
-#### Deluge Docker container
+As the config for VPN is now complete, Login into portainer and go to App Templates -> Custom Templates and deploy the template.
 
-_Note_: (Not Advised) If you don't own a VPN and want to use this without VPN  use the following compose, this WILL EXPOSE your real IP address.
-
-```yaml
-
-deluge:
-    container_name: deluge
-    image: 'linuxserver/deluge:latest'
-    restart: unless-stopped
-    environment:
-      - PUID=${PUID} # default user id, defined in .env
-      - PGID=${PGID} # default group id, defined in .env
-      - TZ=${TZ} # timezone, defined in .env
-    volumes:
-      - '${ROOT}/MediaCenter/config/deluge:/config'  # config files
-      - '${HDDSTORAGE}:/MediaCenterBox'  # downloads folder
-    network_mode: 'service:vpn' #comment/remove if you are not using the VPN
-    depends_on:                 #comment/remove if you are not using the VPN
-      - vpn                     # run on the vpn network #comment/remove if you are not using the VPN
-
-```
+***
 
 
 #### Deluge Configuration
 
 _Note_: If the bellow page does not open and you are using the VPN normally it means that something is wrong with the VPN itself!
 
-run `docker-compose restart deluge` everytime that you stop or start te VPN container as deluge dependes on it.
-
 
 You should be able to log in on the web UI (`localhost:8112`, replace `localhost` with your machine ip if needed).
 
+The default password is `deluge`. You are asked to modify it.
+
 ![Deluge Login](img/DelugeLogin.png)
 
-
-The default password is `deluge`. You are asked to modify it.
 
 The running deluge daemon should be automatically detected and appear online, you can connect to it.
 
 ![Deluge daemon](img/DelugeDaemon.png)
 
-You should activate `autoadd` in the plugins section: it adds support for `.magnet` files.
 
-![Deluge paths](img/DelugePaths.png)
-
-
-You should activate `Label` in the plugins section: it adds support for labels in Sonarr and Radarr
+You should activate `autoadd` and `Label` in the plugins section: it adds support for `.magnet` files and labels in Sonarr and Radarr.
 
 ![Deluge Plugins](img/DelugeLabelPlugin.png)
 
 
 
-Configuration gets stored automatically in your mounted volume (`${ROOT}/config/deluge`) to be re-used at container restart. Important files in there:
+Configuration gets stored automatically in your mounted volume (`${ROOT}/MediaCenter/quick-arr-stack/docker/deluge-openvpn/config`) to be re-used at container restart.
+
+Important files in there:
 
 - `auth` contains your login/password
 - `core.conf` contains your deluge configuration
@@ -337,39 +275,18 @@ You can use the Web UI manually to download any torrent from a .torrent file or 
 
 Notice how Deluge is now using the VPN container network, with Deluge web UI and Prowlarr port exposed on the vpn container for local network access.
 
-You can check that deluge is properly going out through the VPN IP by using [torguard check](https://torguard.net/checkmytorrentipaddress.php).
-Get the torrent magnet link there, put it in Deluge, and wait a bit, and then you should see your outgoing torrent IP on the website.
+#### Verify vpn connection
 
-![Torrent guard](img/torrent_guard.png)
+Login into portainer and go to Containers -> click deluge -> Click Console -> Connect
+
+![portainer console](img/portainer-console.png)
+
+Once connected run `curl ipinfo.io` and verify the output.
+
+![ipinfo.io](img/portainer-deluge-ipinfo.png)
 
 
 ***
-
-### Setup Plex
-
-#### Media Server Docker Container
-
-Plex team already provides a maintained [Docker image for pms](https://github.com/plexinc/pms-docker).
-
-We'll use the host network directly, and run our container with the following configuration:
-
-```yaml
-plex-server:
-    container_name: plex-server
-    image: 'plexinc/pms-docker:latest'
-    restart: unless-stopped
-    environment:
-      - 'TZ=${TZ}'
-    network_mode: host
-    volumes:
-      - '${ROOT}/MediaCenter/config/plex/db:/config' #plex configs
-      - '${ROOT}/MediaCenter/config/plex/transcode:/transcode' # temp transcoded files
-      - '${HDDSTORAGE}/Completed:/HDD_Completed' #Media location TV Shows/Movies
-```
-
-Then run the container with `docker-compose up -d --remove-orphans`.
-
-To follow container logs, run `docker-compose logs -f plex-server`.
 
 #### Plex Configuration
 
@@ -382,8 +299,8 @@ I have two libraries:
 
 Add these the library paths:
 
-- Movies: `/MediaCenterBox/Movies`
-- TV: `/MediaCenterBox/TV`
+- Movies: `${ROOT}/MediaCenter/MediaCenterBox/completed/movies`
+- TV: `${ROOT}/MediaCenter/MediaCenterBox/completed/tv`
 
 Example:
 
@@ -399,52 +316,24 @@ A few things I like to configure in the settings:
 
 - Tick "Update my library automatically"
 
-You can already watch your stuff through the Web UI. 
+You can already watch your stuff through the Web UI.
 
 ***
 
 
-
-### Setup Sonarr
-
-#### Sonarr Docker container
-
-The docker file should look like this:
-
-```yaml
-  sonarr:
-    container_name: sonarr
-    image: 'linuxserver/sonarr:latest'
-    restart: unless-stopped
-    network_mode: host
-    environment:
-      - 'PUID=${PUID}'
-      - 'PGID=${PGID}'
-      - 'TZ=${TZ}'
-    volumes:
-      - '/etc/localtime:/etc/localtime:ro'
-      - '${ROOT}/MediaCenter/config/sonarr:/config' #config Folder
-      - '${HDDSTORAGE}:/MediaCenterBox' #data Folder
-```
-
-Then run the container with `docker-compose up -d --remove-orphans`.
-
-To follow container logs, run `docker-compose logs -f sonarr`.
-
-Sonarr web UI listens on port 8989 by default. You need to mount your tv shows directory (the one where everything will be nicely sorted and named). And your download folder, because Sonarr will look over there for completed downloads, then move them to the appropriate directory.
-
 #### Sonarr Configuration
 
-Sonarr should be available on `localhost:8989`. Go straight to the `Settings` tab.
+
+Sonarr should be available on `localhost:8989`. Setup login and reload the page and then go straight to the `Settings` tab.
 
 
 Sonarr should be ready out of the box, there are multiple settings and configurations that you can explore later but we are going to start with the basics.
 
-`Root Folders` is in the Media Management tab, here we add the `/MediaCenterBox/Completed/TV/` folder. This will be the default directory where all the TV Shows will be stored
+`Root Folders` is in the Media Management tab, here we add the `/MediaCenterBox/completed/tv/` folder. This will be the default directory where all the TV Shows will be stored
 
 ![Sonarr Root Folders](img/SonarRootFolders.png)
 
-`Download Clients` tab is where we'll configure links with our tdownload client Deluge.
+`Download Clients` tab is where we'll configure links with our download client Deluge.
 There are existing presets for these 2 that we'll fill with the proper configuration.
 
 Deluge configuration:
@@ -454,7 +343,7 @@ Deluge configuration:
 Enable `Advanced Settings`, and tick `Remove Completed` in the Completed Download Handling section. This tells Sonarr to remove torrents from Deluge once processed.
 
 
-`Indexers` is the important tab: that's where Sonarr will grab information about released episodes. This will be automatically configurated by [Prowlarr](#setup-prowlarr)
+`Indexers` is the important tab: that's where Sonarr will grab information about released episodes. This will be automatically configured by [Prowlarr](#setup-prowlarr) later when setting prowlarr. No need to add indexer at this point.
 
 
 In `Connect` tab, we'll configure Sonarr to send notifications to Plex when a new episode is ready:
@@ -462,45 +351,15 @@ In `Connect` tab, we'll configure Sonarr to send notifications to Plex when a ne
 ![Sonarr Plex configuration](img/SonarrPlexConnect.png)
 
 
-
-### Setup Radarr
-
-Radarr is a fork of Sonarr, made for movies instead of TV shows. For a good while I've used CouchPotato for that exact purpose, but have not been really happy with the results. Radarr intends to be as good as Sonarr!
-
-#### Radarr Docker container
-
-Radarr is very similar to Sonarr.
-
-```yaml
-
-  radarr:
-    container_name: radarr
-    image: 'linuxserver/radarr:latest'
-    restart: unless-stopped
-    network_mode: host
-    environment:
-      - PUID=${PUID} # default user id, defined in .env
-      - PGID=${PGID} # default group id, defined in .env
-      - TZ=${TZ} # timezone, defined in .env
-     volumes:
-      - /etc/localtime:/etc/localtime:ro
-      - ${ROOT}/config/radarr:/config # config files
-      - ${ROOT}/complete/movies:/movies # movies folder
-      - ${ROOT}/downloads:/downloads # download folder
-```
-
-
-Then run the container with `docker-compose up -d --remove-orphans`.
-
-To follow container logs, run `docker-compose logs -f radarr`.
-
 #### Radarr Configuration
 
-Radarr should be available on `localhost:7878`. Go straight to the `Settings` tab.
+Radarr is a fork of Sonarr, made for movies instead of TV shows.
+
+Radarr should be available on `localhost:7878`. Setup login and reload the page and then go straight to the `Settings` tab.
 
 Radarr should be ready out of the box, there are multiple settings and configurations that you can explore later but we are going to start with the basics.
 
-`Root Folders` is in the Media Management tab, here we add the `/MediaCenterBox/Completed/Movies/` folder. This will be the default directory where all the TV Shows will be stored
+`Root Folders` is in the Media Management tab, here we add the `/MediaCenterBox/completed/movies/` folder. This will be the default directory where all the TV Shows will be stored
 
 ![Radarr Root Folders](img/RadarrRootFolder.png)
 
@@ -514,7 +373,7 @@ Deluge configuration:
 Enable `Advanced Settings`, and tick `Remove Completed` in the Completed Download Handling section. This tells Sonarr to remove torrents from Deluge once processed.
 
 
-`Indexers` is the important tab: that's where Radarr will grab information about released episodes. This will be automatically configurated by [Prowlarr](#setup-prowlarr)
+`Indexers` is the important tab: that's where Radarr will grab information about released episodes. This will be automatically configured by [Prowlarr](#setup-prowlarr) later when setting prowlarr. No need to add indexer at this point.
 
 
 In `Connect` tab, we'll configure Sonarr to send notifications to Plex when a new episode is ready:
@@ -523,44 +382,13 @@ In `Connect` tab, we'll configure Sonarr to send notifications to Plex when a ne
 
 
 ***
-### Setup Prowlarr
-
-[Prowlarr](https://prowlarr.com/) translates requests from Sonarr and Radarr to searches for torrents on popular torrent websites.
-
-#### Prowlarr Docker container
-
-
-```yaml
-prowlarr:
-    image: lscr.io/linuxserver/prowlarr:latest
-    container_name: prowlarr
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - 'TZ=${TZ}'
-    volumes:
-      - '${ROOT}/MediaCenter/config/prowlarr:/config'
-    restart: unless-stopped
-    #ports:
-    #  - '9696:9696' #uncomment if you are not using the VPN
-    network_mode: 'service:vpn' #comment/remove if you are not using the VPN
-    depends_on:                 #comment/remove if you are not using the VPN
-      - vpn                     #comment/remove if you are not using the VPN
-
-```
-
-Nothing particular in this configuration, it's pretty similar to other linuxserver.io images.
-
-Then run the container with `docker-compose up -d --remove-orphans`.
-
-To follow container logs, run `docker-compose logs -f prowlarr`.
 
 #### Prowlarr Configuration
 
 Prowlarr web UI is available on port 9696(`localhost:9696`, replace `localhost` by your machine ip if needed).
 
 
-On login, it will request to set up a login method, anyone works, as an example i have used the forms option
+Setup login and reload the page and then go straight to the `Settings` tab.
 
 ![Prowlarr login setup](img/prowlarrLogin.png)
 
@@ -588,41 +416,6 @@ Now on Sonar and Radarr in the Settings - Indexers Tab it will show the indexer 
 
 ***
 
-
-### Setup Bazarr
-
-[Bazarr](https://www.bazarr.media/) hooks directly into Radarr and Sonarr and makes the process more effective and painless. If you don't care about subtitles go ahead and skip this step.
-
-#### Bazarr Docker container
-
-The docker file should look like this:
-
-
-```yaml
-  bazarr:
-    container_name: bazarr
-    image: 'linuxserver/bazarr:latest'
-    restart: unless-stopped
-    #network_mode: host
-    environment:
-      - 'PUID=${PUID}'
-      - 'PGID=${PGID}'
-      - 'TZ=${TZ}'
-      - UMASK_SET=022
-    volumes:
-      - '${ROOT}/MediaCenter/config/bazarr:/config' # config files
-      - '${HDDSTORAGE}:/MediaCenterBox' # Media folder
-    ports:
-      - '6767:6767'
-  
-```
-
-
-Nothing particular in this configuration, it's pretty similar to other linuxserver.io images.
-
-Then run the container with `docker-compose up -d --remove-orphans`.
-
-To follow container logs, run `docker-compose logs -f bazarr`.
 
 
 #### Bazarr Configuration
@@ -693,69 +486,11 @@ When the download is over, you can head over to Plex and check if the movie appe
 
 
 
-#### Optional containers
+#### Optional or Alternative containers
 
-The following containers are nice to have and are not required for the "mediaBox experience", they can be removed from the docker composed without any impact for all the system.
+The following containers are nice to have and are not required for the "mediaBox experience", these can be added or replaced from the `quick-arr-docker.yml` without any impact for all the system.
 
-
-
-### Setup Wireguard
-We'll use Wireguard Docker image from linuxserver [Docker image from linuxserver](https://hub.docker.com/r/linuxserver/wireguard )
-This container will allow you to connect to all your services outside your home network exposing only one port
-
-
-_Note_: It's required to open port 51820 in your router to be abbe to connect with the VPN to your home network.
-
-The following website has some example of how to port forward for most of routers: [portforward.com](https://portforward.com/router.htm)
-
-
-#### Wireguard Docker container
-
-```yaml
-wireguard:
-  image: ghcr.io/linuxserver/wireguard:latest
-  container_name: wireguard
-  cap_add:
-    - NET_ADMIN
-    - SYS_MODULE
-  environment:
-    - PUID=${PUID} # default user id, defined in .env
-    - PGID=${PUID} # default user id, defined in .env
-    - TZ=${TZ} # timezone, defined in .env
-    - SERVERURL=${SERVERURL} # server public ip, auto to auto find, defined in .env
-    - SERVERPORT=51820 #optional
-    - PEERS=${PEERS} # number of clients to be auto configured, defined in .env
-    - PEERDNS=auto #optional
-    - INTERNAL_SUBNET=172.168.69.0 #optional, network for devices ips. CAN NOT be the same as your home network
-    - ALLOWEDIPS=0.0.0.0/0 #optional
-  volumes:
-    - ${ROOT}/MediaCenter/config/wireguard:/config # config folder
-    - /lib/modules:/lib/modules
-  ports:
-    - 51820:51820/udp
-  sysctls:
-    - net.ipv4.conf.all.src_valid_mark=1
-  restart: always
-
-
-```
-
-Nothing particular in this configuration, it's pretty similar to other linuxserver.io images.
-
-Then run the container with `docker-compose up -d --remove-orphans`.
-
-To follow container logs, run `docker-compose logs -f wireguard`.
-
-
-#### Wireguard Configuration
-
-
-
-All the user's credentials will be created inside the config folder for wireguard ${ROOT}/MediaCenter/config/wireguard/peerX where peerX will be peer1, 2, 3,...
-
-
-***
-
+For example, jellyfin can be used an alternative to plex and jelleyseer instead of overseer.
 
 ## Overseerr Setup
 
@@ -764,28 +499,6 @@ Overseerr is a request management and media discovery tool built to work with yo
 Overseerr helps you find media you want to watch. With inline recommendations and suggestions.
 
 It will allow you to request Movies and TV Shows without the need to go to Radarr or Sonarr, this is really helpful when there are other users in the system that we do want to give access to Sonarr or Radarr for them to request movies.
-
-### Overseerr Docker Container
-
-
-```yaml
-  overseerr:
-    image: sctx/overseerr:latest
-    container_name: overseerr
-    environment:
-      - LOG_LEVEL=debug
-      - TZ=${TZ}
-    ports:
-      - 5055:5055
-    volumes:
-      - ${ROOT}/MediaCenter/config/overseerr/config:/app/config
-    restart: unless-stopped
-```
-
-
-Then run the container with `docker-compose up -d --remove-orphans`.
-
-To follow container logs, run `docker-compose logs -f overseerr`.
 
 
 #### Overseerr Configuration
@@ -818,44 +531,103 @@ after that fill the remaining settings with your desired configuration.
 
 ![Overseerr radar sample configuration](img/Overseerr_radarr_setup.png)
 
-#### Portainer Setup
-
-We are going to use the official [Portainer Community Edition](https://github.com/portainer/portainer) image, this is a lightweight service that allows us to monitor all of our containers, we can see the status, logs and manage them directly there.
-It will require registration on the Portainer website to get a free license.
-
-
-#### Portainer Docker Container
+### Setup Wireguard
+We'll use Wireguard Docker image from linuxserver [Docker image from linuxserver](https://hub.docker.com/r/linuxserver/wireguard )
+This container will allow you to connect to all your services outside your home network exposing only one port
 
 
-```sh
-docker volume create portainer_data
+_Note_: It's required to open port 51820 in your router to be abbe to connect with the VPN to your home network.
 
-docker run -d -p 8000:8000 -p 9444:9443 -p 9000:9000 --name portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ee:latest
+The following website has some example of how to port forward for most of routers: [portforward.com](https://portforward.com/router.htm)
+
+
+#### Wireguard Docker container
+
+```yaml
+wireguard:
+  image: ghcr.io/linuxserver/wireguard:latest
+  container_name: wireguard
+  cap_add:
+    - NET_ADMIN
+    - SYS_MODULE
+  environment:
+    - PUID=${PUID} # default user id, defined in .env
+    - PGID=${PUID} # default user id, defined in .env
+    - TZ=${TZ} # timezone, defined in .env
+    - SERVERURL=${SERVERURL} # server public ip, auto to auto find, defined in .env
+    - SERVERPORT=51820 #optional
+    - PEERS=${PEERS} # number of clients to be auto configured, defined in .env
+    - PEERDNS=auto #optional
+    - INTERNAL_SUBNET=172.168.69.0 #optional, network for devices ips. CAN NOT be the same as your home network
+    - ALLOWEDIPS=0.0.0.0/0 #optional
+  volumes:
+    - ${ROOT}/MediaCenter/quick-arr-stack/docker/wireguard/config:/config # config folder
+    - /lib/modules:/lib/modules
+  ports:
+    - 51820:51820/udp
+  sysctls:
+    - net.ipv4.conf.all.src_valid_mark=1
+  restart: always
+
+
 ```
 
+Nothing particular in this configuration, it's pretty similar to other linuxserver.io images.
 
-### Portainer Configuration
+
+#### Wireguard Configuration
 
 
-The Web UI for Portainer will be available on port 9000. Load it up and you will be greeted with the admin creation page.
-Add an username and password and hit `Create User`
 
-![Portainer Admin Creation](img/PortainerConfiguration.png)
+All the user's credentials will be created inside the config folder for wireguard ${ROOT}/MediaCenter/config/wireguard/peerX where peerX will be peer1, 2, 3,...
 
-On the next page click on `Don't have a license?` and request a free one and insert it here and click on submit.
 
-![Portainer Admin Creation](img/PortainerRegister.png)
+***
 
-Here just click on `Get Started` and you will be redirected to the `Environments` page.
-Select your environment click on `Stack` and then on the `quick-arr-stack`.
-On this page, you can see all your containers for this stack and multiple options to manage them.
+## Jellyfin Container
 
-![Portainer Admin Creation](img/PortainerConainers.png)
+Use this as an alternative to Plex along with jellyseer.
+
+```yaml
+  jellyfin:
+    image: jellyfin/jellyfin
+    container_name: jellyfin
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - UMASK=002
+      - TZ=America/Toronto
+    volumes:
+      - ${ROOT}/MediaCenter/quick-arr-stack/docker/jellyfin/config:/config
+      - ${ROOT}/MediaCenter/MediaCenterBox/completed:/data
+    ports:
+      - "8096:8096"
+    restart: unless-stopped
+```
+
+## Jellyseer Container
+
+```yaml
+ jellyseerr:
+    image: fallenbagel/jellyseerr:latest
+    container_name: jellyseerr
+    environment:
+      - PUID=13006
+      - PGID=13000
+      - UMASK=002
+      - LOG_LEVEL=debug
+      - TZ=America/Toronto
+    ports:
+      - "5055:5055"
+    volumes:
+      - ${ROOT}/MediaCenter/quick-arr-stack/docker/jellyseerr/config:/app/config
+    restart: unless-stopped
+```
 
 
 ## Mobile Management
 
-[Lunsea](https://www.lunasea.app/), Open source manager
+[Lunasea](https://www.lunasea.app/), Open source manager
 
 [nzb360](http://nzb360.com), is more powerful than lunasea  with a free and paid version. 
 

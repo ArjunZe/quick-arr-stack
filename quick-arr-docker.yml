@@ -1,38 +1,38 @@
-version: '3.4'
+version: "3.4"
 services:
   openvpn:
     container_name: openvpn
-    image: 'dperson/openvpn-client:latest'
+    image: "dperson/openvpn-client:latest"
     environment:
-      - 'OTHER_ARGS= --mute-replay-warnings'
+      - "OTHER_ARGS= --mute-replay-warnings"
     cap_add:
       - net_admin
       - SYS_MODULE
     restart: unless-stopped
     volumes:
-      - '/owncloud/Disk/quick-arr-stack/docker/openvpn/config/vpn:/vpn'
+      - "${ROOT}/MediaCenter/quick-arr-stack/docker/openvpn/config/vpn:/vpn"
       - /lib/modules:/lib/modules
     security_opt:
-      - 'label:disable'
+      - "label:disable"
     devices:
-      - '/dev/net/tun:/dev/net/tun'
+      - "/dev/net/tun:/dev/net/tun"
     ports:
-      - '8112:8112'
-      - '9696:9696'
+      - "8112:8112" #deluge web UI Port
+      - "9696:9696" #prowlarr web UI Port
     command: '-f "" -r 10.0.0.0/24' #cidr must be of host
 
   deluge:
     container_name: deluge
-    image: 'linuxserver/deluge:latest'
+    image: "linuxserver/deluge:latest"
     restart: unless-stopped
     environment:
       - PUID=1000
       - PGID=1000
       - TZ=America/Toronto
     volumes:
-      - '/owncloud/Disk/quick-arr-stack/docker/deluge-openvpn/config:/config'
-      - '/owncloud/Disk/entertainment:/downloads'
-    network_mode: 'service:openvpn'
+      - "${ROOT}/MediaCenter/quick-arr-stack/docker/deluge-openvpn/config:/config"
+      - "${ROOT}/MediaCenter/MediaCenterBox:/downloads"
+    network_mode: "service:openvpn"
     depends_on:
       - openvpn
 
@@ -44,15 +44,15 @@ services:
       - PGID=1000
       - TZ=America/Toronto
     volumes:
-      - '/owncloud/Disk/quick-arr-stack/docker/prowlarr/config:/config'
+      - "${ROOT}/MediaCenter/quick-arr-stack/docker/prowlarr/config:/config"
     restart: unless-stopped
-    network_mode: 'service:openvpn'
+    network_mode: "service:openvpn"
     depends_on:
-      - openvpn                   
+      - openvpn
 
   sonarr:
     container_name: sonarr-openvpn
-    image: 'linuxserver/sonarr:latest'
+    image: "linuxserver/sonarr:latest"
     restart: unless-stopped
     network_mode: host
     environment:
@@ -60,12 +60,12 @@ services:
       - PGID=1000
       - TZ=America/Toronto
     volumes:
-      - '/etc/localtime:/etc/localtime:ro'
-      - '/owncloud/Disk/quick-arr-stack/docker/sonarr/config:/config'
-      - '/owncloud/Disk/entertainment:/downloads'
+      - "/etc/localtime:/etc/localtime:ro"
+      - "${ROOT}/MediaCenter/quick-arr-stack/docker/sonarr/config:/config"
+      - "${ROOT}/MediaCenter/MediaCenterBox:/downloads"
   radarr:
     container_name: radarr-openvpn
-    image: 'linuxserver/radarr:latest'
+    image: "linuxserver/radarr:latest"
     restart: unless-stopped
     network_mode: host
     environment:
@@ -73,13 +73,13 @@ services:
       - PGID=1000
       - TZ=America/Toronto
     volumes:
-      - '/etc/localtime:/etc/localtime:ro'
-      - '/owncloud/Disk/quick-arr-stack/docker/radarr/config:/config'
-      - '/owncloud/Disk/entertainment:/downloads'
-      
+      - "/etc/localtime:/etc/localtime:ro"
+      - "${ROOT}/MediaCenter/quick-arr-stack/docker/radarr/config:/config"
+      - "${ROOT}/MediaCenter/MediaCenterBox:/downloads"
+
   bazarr:
     container_name: bazarr-openvpn
-    image: 'linuxserver/bazarr:latest'
+    image: "linuxserver/bazarr:latest"
     restart: unless-stopped
     network_mode: host
     environment:
@@ -88,32 +88,32 @@ services:
       - TZ=America/Toronto
       - UMASK_SET=022
     volumes:
-      - '/owncloud/Disk/quick-arr-stack/docker/bazarr/config:/config'
-      - '/owncloud/Disk/entertainment:/downloads'
+      - "${ROOT}/MediaCenter/quick-arr-stack/docker/bazarr/config:/config"
+      - "${ROOT}/MediaCenter/MediaCenterBox:/downloads"
     ports:
-      - '6767:6767'
-      
+      - "6767:6767"
+
   plex-server:
     container_name: plex-server-openvpn
-    image: 'plexinc/pms-docker:latest'
+    image: "plexinc/pms-docker:latest"
     restart: unless-stopped
     environment:
       - TZ=America/Toronto
     network_mode: host
     volumes:
-      - '/owncloud/Disk/quick-arr-stack/docker/plex/db/config:/config'
-      - '/owncloud/Disk/quick-arr-stack/docker/plex/transcode:/transcode'
-      - '/owncloud/Disk/entertainment/completed:/downloads'
-  
+      - "${ROOT}/MediaCenter/quick-arr-stack/docker/plex/db/config:/config"
+      - "${ROOT}/MediaCenter/quick-arr-stack/docker/plex/transcode:/transcode"
+      - "${ROOT}/MediaCenter/MediaCenterBox/completed:/downloads"
+
   overseerr:
-    image: 'sctx/overseerr:latest'
+    image: "sctx/overseerr:latest"
     container_name: overseerr-openvpn
     network_mode: host
     environment:
       - LOG_LEVEL=debug
       - TZ=America/Toronto
     ports:
-      - '5055:5055'
+      - "5055:5055"
     volumes:
-      - '/owncloud/Disk/quick-arr-stack/docker/overseerr/config:/app/config'
+      - "${ROOT}/MediaCenter/quick-arr-stack/docker/overseerr/config:/app/config"
     restart: unless-stopped
