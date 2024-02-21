@@ -1,4 +1,4 @@
-## Quick Arr Stack
+## Quick Arr Stack with Portainer
 
 TV shows and movies downloaded, sorted, with the desired quality and subtitles, behind a VPN (optional), ready to watch, in a beautiful media player.
 All automated.
@@ -137,77 +137,57 @@ docker-compose pull
 docker-compose start
 
 ```
-
-
-### Clone the repository
-
-This tutorial will guide you along the full process of making your own docker-compose file and configuring every app within it, however, to prevent errors or to reduce your typing, you can also use the general-purpose docker-compose file provided in this repository.
-
-1. First, `git clone https://github.com/Rick45/quick-arr-Stack` into a directory. This is where you will run the full setup from (note: this isn't the same as your configuration or media directory)
-2. Rename the `.env.example` file included in the repo to `.env`.
-3. Continue this guide, and the docker-compose file snippets you see are already ready for you to use. You'll still need to manually configure your `.env` file and other manual configurations.
-
-### Setup environment variables
-
-Rename the `.env.example` file included in the repo to `.env`.
-
-Here is an example of what your `.env` file should look like, use values that fit your own setup.
-
-```sh
-# Your timezone, https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
-TZ=Europe/Lisbon
-# UNIX PUID and PGID, find with: id $USER
-PUID=1000
-PGID=1000
-# The directory where configuration will be stored.
-ROOT=/home/{youruser}/  #update the {youruser} with your user path
-# The directory where data will be stored.
-HDDSTORAGE=/home/{youruser}/Storage/ #update the {youruser} with your user path
-
-# Wireguard Settings
-#Your public ip, auto for auto detect
-SERVERURL=auto
-#number of devices to generate configuration to connect to the wireguard vpn
-PEERS=7
-```
-
-Things to notice:
-
-- TZ is based on your [tz time zone](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones).
-- The PUID and PGID are your user's ids. Find them with `id $USER`.
-- This file should be in the same directory as your `docker-compose.yml` file so the values can be read in.
-
-
-***
-
-
-
-#### Folder Structure
+#### Creating Folder Structure
 
 Currently, I'm doing this in this way as it is(from what I found) the most straightforward method to have the [Hard link](https://en.wikipedia.org/wiki/Hard_link) for files to work without issues, this halves the amount of size while the torrent is seeding, and solve some access issues that I found while doing this setup.
 
+_Note: ${ROOT} can be any of your own path such as /home/user._
 
-Inside the folder from where you cloned the repository run the following command:  `docker-compose up -d --remove-orphans`.
+```
+${ROOT}/
+│
+└── MediaCenter/
+    │
+    ├── quick-arr-stack/
+    │   │
+    │   └── docker/
+    │       │
+    │       └── {container-name}/
+    │           │
+    │           └── config/
+    │
+    └── MediaCenterBox/
+        │
+        └── completed/
+            │
+            ├── movies/
+            │
+            └── tv/
+```
+
+Create the folders needed to store container config and movies/tv show files.
+
+`sudo mkdir -p ${ROOT}/MediaCenter/quick-arr-stack/docker/`
+
+and
+
+`sudo mkdir -p ${ROOT}/MediaCenter/MediaCenterBox/completed/movies`
+
+and
+
+`sudo mkdir -p ${ROOT}/MediaCenter/MediaCenterBox/completed/tv`
 
 Then run the following ones:
 
-`sudo chown -R $USER:$USER /path/to/ROOT/directory` 
+`sudo chown -R $USER:$USER ${ROOT}/MediaCenter/quick-arr-stack/docker`
  
 and
  
-`sudo chown -R $USER:$USER /path/to/HDDSTORAGE/directory` 
+`sudo chown -R $USER:$USER ${ROOT}/MediaCenter/MediaCenterBox`
  
 This will allow you to create folders, copy and paste files, this could be also required for Sonarr and Radarr to do some operations.
 
-After this Create 2 folders in the `Storage\Completed` folder, `Movies` and `TV`, this will be used later.
-
-
-![Folder Structure](img/folderStructure.png)
-
-
-
-
-### Setup a VPN Container
+### Install Portainer
 
 
 ```sh
