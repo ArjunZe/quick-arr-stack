@@ -1,4 +1,4 @@
-## Quick Arr Stack
+## Quick Arr Stack with Portainer
 
 TV shows and movies downloaded, sorted, with the desired quality and subtitles, behind a VPN (optional), ready to watch, in a beautiful media player.
 All automated.
@@ -62,7 +62,11 @@ This is a quick guide on how to build a server with a [Servarr stack](https://wi
 
 How does it work?
 
-This is composed of multiple tools working together to have an automated way to monitor and watch your favourite TV Shows and Movies
+This is composed of multiple tools working together to have an automated way to monitor and watch your favorite TV Shows and Movies
+
+**Docker Container Manager**
+
+- [Portainer](https://github.com/portainer/portainer): This is a lightweight service that allows us to deploy, troubleshoot and monitor all of our containers, we can see the status, logs and manage them directly there.
 
 **Downloaders**:
 
@@ -79,15 +83,17 @@ This is composed of multiple tools working together to have an automated way to 
 **Media Center**:
 
 - [Plex](https://plex.tv): media center server with streaming transcoding features, useful plugins and a beautiful UI. Clients available for many systems (Linux/OSX/Windows, Web, Android, Chromecast, Android TV, etc.)
-
+  - OR
+- [Jellyfin](https://jellyfin.org): Jellyfin is the volunteer-built media solution that puts you in control of your media. Stream to any device from your own server, with no strings attached.
 
 **Optional**:
 
 - [Overseerr](https://overseerr.dev/):  is a free and open source software application for managing requests for your media library. It integrates with your existing services, such as Sonarr, Radarr, and Plex!
+  - OR
+- [Jellyseerr](https://overseerr.dev/):  Overseer is for plex where as Jellyseerr is for Jellyfin.
 
 - [Wireguard](https://github.com/linuxserver/docker-wireguard): is an extremely simple yet fast and modern VPN that utilizes state-of-the-art cryptography. This will allow us to connect to our home network  from anywhere and use the Plex app outside of our house without using Plex servers for routing.
 
-- [Portainer](https://github.com/portainer/portainer): This is a lightweight service that allows us to monitor all of our containers, we can see the status, logs and manage them directly there.
 
 ## Hardware configuration
 
@@ -131,74 +137,82 @@ docker-compose pull
 docker-compose start
 
 ```
-
-
-### Clone the repository
-
-This tutorial will guide you along the full process of making your own docker-compose file and configuring every app within it, however, to prevent errors or to reduce your typing, you can also use the general-purpose docker-compose file provided in this repository.
-
-1. First, `git clone https://github.com/Rick45/quick-arr-Stack` into a directory. This is where you will run the full setup from (note: this isn't the same as your configuration or media directory)
-2. Rename the `.env.example` file included in the repo to `.env`.
-3. Continue this guide, and the docker-compose file snippets you see are already ready for you to use. You'll still need to manually configure your `.env` file and other manual configurations.
-
-### Setup environment variables
-
-Rename the `.env.example` file included in the repo to `.env`.
-
-Here is an example of what your `.env` file should look like, use values that fit your own setup.
-
-```sh
-# Your timezone, https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
-TZ=Europe/Lisbon
-# UNIX PUID and PGID, find with: id $USER
-PUID=1000
-PGID=1000
-# The directory where configuration will be stored.
-ROOT=/home/{youruser}/  #update the {youruser} with your user path
-# The directory where data will be stored.
-HDDSTORAGE=/home/{youruser}/Storage/ #update the {youruser} with your user path
-
-# Wireguard Settings
-#Your public ip, auto for auto detect
-SERVERURL=auto
-#number of devices to generate configuration to connect to the wireguard vpn
-PEERS=7
-```
-
-Things to notice:
-
-- TZ is based on your [tz time zone](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones).
-- The PUID and PGID are your user's ids. Find them with `id $USER`.
-- This file should be in the same directory as your `docker-compose.yml` file so the values can be read in.
-
-
-***
-
-
-
-#### Folder Structure
+#### Creating Folder Structure
 
 Currently, I'm doing this in this way as it is(from what I found) the most straightforward method to have the [Hard link](https://en.wikipedia.org/wiki/Hard_link) for files to work without issues, this halves the amount of size while the torrent is seeding, and solve some access issues that I found while doing this setup.
 
+_Note: /owncloud/Disk/ can be any of your own path such as /home/youruser._
 
-Inside the folder from where you cloned the repository run the following command:  `docker-compose up -d --remove-orphans`.
+```
+owncloud/
+│
+└── Disk/
+    │
+    ├── quick-arr-stack/
+    │   │
+    │   └── docker/
+    │       │
+    │       └── {container-name}/
+    │           │
+    │           └── config/
+    │
+    └── entertainment/
+        │
+        └── completed/
+            │
+            ├── movies/
+            │
+            └── tv/
+```
+
+Create the folders needed to store container config and movies/tv show files.
+
+`sudo mkdir -p /owncloud/Disk/quick-arr-stack/docker/`
+
+and
+
+`sudo mkdir -p /owncloud/Disk/entertainment/completed/movies`
+
+and
+
+`sudo mkdir -p /owncloud/Disk/entertainment/completed/tv`
 
 Then run the following ones:
 
-`sudo chown -R $USER:$USER /path/to/ROOT/directory` 
+`sudo chown -R $USER:$USER /owncloud/Disk/quick-arr-stack/docker`
  
-and 
+and
  
-`sudo chown -R $USER:$USER /path/to/HDDSTORAGE/directory` 
+`sudo chown -R $USER:$USER /owncloud/Disk/entertainment`
  
 This will allow you to create folders, copy and paste files, this could be also required for Sonarr and Radarr to do some operations.
 
-After this Create 2 folders in the `Storage\Completed` folder, `Movies` and `TV`, this will be used later.
+### Install Portainer
 
 
-![Folder Structure](img/folderStructure.png)
+```sh
+docker run -d -p 8000:8000 -p 9443:9443 --name portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v /owncloud/Disk/quick-arr-stack/docker/portainer/data:/data portainer/portainer-ce:latest
+```
 
+See the [official instructions](https://docs.portainer.io/start/install-ce/server/docker/linux) for Initial Setup Portainer. or watch video (https://youtu.be/4y0ksWu4wHw?si=sz1FxeFxhQZsKc09&t=301)
 
+### Prepare template for Portainer
+
+- Download the quick-arr-docker.yml
+- Open it in your fav editor like notepad++
+- Replace all occurrences of /owncloud/Disk/ with your path.
+- Change 10.0.0.0/24 CIDR under openvpn with your host machine cidr.
+
+### Setup template for Portainer
+
+- Login into Portainer
+- From the menu select App Templates then select Custom Templates.
+- Click Add Custom Template then complete the details
+- Copy paste the modified content of quick-arr-docker.yml in the Web editor.
+- Update the template
+- Deploy the Stack
+
+***
 
 
 ### Setup a VPN Container
