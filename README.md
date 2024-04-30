@@ -517,55 +517,48 @@ after that fill the remaining settings with your desired configuration.
 ![Overseerr radar sample configuration](img/Overseerr_radarr_setup.png)
 
 ### Setup Wireguard
-We'll use Wireguard Docker image from linuxserver [Docker image from linuxserver](https://hub.docker.com/r/linuxserver/wireguard )
+We'll use [WireGuard Easy](https://github.com/wg-easy/wg-easy) i.e. easiest way to install & manage WireGuard on any Linux host!
 This container will allow you to connect to all your services outside your home network exposing only one port
-
 
 _Note_: It's required to open port 51820 in your router to be abbe to connect with the VPN to your home network.
 
 The following website has some example of how to port forward for most of routers: [portforward.com](https://portforward.com/router.htm)
 
-
 #### Wireguard Docker container
 
 ```yaml
-wireguard:
-  image: ghcr.io/linuxserver/wireguard:latest
-  container_name: wireguard
-  cap_add:
-    - NET_ADMIN
-    - SYS_MODULE
-  environment:
-    - PUID=${PUID} # default user id, defined in .env
-    - PGID=${PUID} # default user id, defined in .env
-    - TZ=${TZ} # timezone, defined in .env
-    - SERVERURL=${SERVERURL} # server public ip, auto to auto find, defined in .env
-    - SERVERPORT=51820 #optional
-    - PEERS=${PEERS} # number of clients to be auto configured, defined in .env
-    - PEERDNS=auto #optional
-    - INTERNAL_SUBNET=172.168.69.0 #optional, network for devices ips. CAN NOT be the same as your home network
-    - ALLOWEDIPS=0.0.0.0/0 #optional
-  volumes:
-    - ${ROOT}/MediaCenter/quick-arr-stack/docker/wireguard/config:/config # config folder
-    - /lib/modules:/lib/modules
-  ports:
-    - 51820:51820/udp
-  sysctls:
-    - net.ipv4.conf.all.src_valid_mark=1
-  restart: always
+version: "3.8"
+services:
+  wg-easy:
+    environment:
+      - LANG=en
+      - WG_HOST=<publicIP>
+      - PASSWORD=<webUiPass>
+      - WG_PORT=51820
+      - WG_ALLOWED_IPS=10.0.0.0/24
+      - UI_TRAFFIC_STATS=true
+      - UI_CHART_TYPE=1
 
-
+    image: ghcr.io/wg-easy/wg-easy
+    container_name: wg-easy
+    volumes:
+      - ${ROOT}/MediaCenter/quick-arr-stack/docker/wireguard:/etc/wireguard
+    ports:
+      - "51820:51820/udp"
+      - "51821:51821/tcp"
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv4.conf.all.src_valid_mark=1
 ```
-
-Nothing particular in this configuration, it's pretty similar to other linuxserver.io images.
 
 
 #### Wireguard Configuration
 
-
-
-All the user's credentials will be created inside the config folder for wireguard ${ROOT}/MediaCenter/config/wireguard/peerX where peerX will be peer1, 2, 3,...
-
+The Web UI will now be available on http://0.0.0.0:51821
 
 ***
 
@@ -609,6 +602,29 @@ Use this as an alternative to Plex along with jellyseer.
     restart: unless-stopped
 ```
 
+### Flood UI
+
+Use this beautiful web UI for various torrent clients as an alternative to default deluge webui.
+
+```yaml
+  flood:
+    container_name: flood
+    user: 1000:1001
+    image: jesec/flood:master
+    restart: unless-stopped
+    command: --port 3001 --allowedpath /data
+    environment:
+        HOME: /config
+    volumes:
+        - ${ROOT}/MediaCenter/quick-arr-stack/docker//flood/config:/config
+        - ${ROOT}/MediaCenter/MediaCenterBox:/data
+    network_mode: 'service:openvpn'
+    depends_on:
+      - openvpn
+```
+### Flood UI Config:
+Use default host, user, and port i.e localhost, localclient, 58846 and your deluge password to add client to Flood.
+![image](https://github.com/ArjunZe/quick-arr-stack/assets/30632232/91734c2a-d78e-4960-a56b-27bd782a96c5)
 
 ## Mobile Management
 
