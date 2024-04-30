@@ -604,7 +604,7 @@ Use this as an alternative to Plex along with jellyseer.
 
 ### Flood UI
 
-Use this beautiful web UI for various torrent clients as an alternative to default deluge webui.
+Use this beautiful web UI for various torrent clients as an alternative to default deluge webui. Add the following service to `quick-arr-docker.yml`
 
 ```yaml
   flood:
